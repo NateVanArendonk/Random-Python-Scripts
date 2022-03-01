@@ -52,41 +52,37 @@ def LoadVectorFromString(vector,crsCode,colorMap,alpha,group):
         print(path)
         print('')
 
-checkSpeed = 0
+checkSpeed = 1
 if checkSpeed:
     t = time.time()
 
-# 1. Get list of file names
-datOutFol = 'g:\\pscomos\\tier3\\model_20210708\\whatcom\\run_20210817\\_post_processed\\final_shapefile\\'
+# Get list of file names
+datOutFol = 'F:\\model\\cosmos\\cosmos_qaqc\\tulalip_02222022\\Outputs_20220220\\final_shapefile\\'
 # Get list of all of the RPs and SLR scenarios
-slrVals   = [0, 25, 50, 100, 150, 200, 300, 500]
-rpVals    = [0, 1, 5, 10, 20, 50, 100, 'King']
-FTVals    = ['', '_disconnected']
-slrVals   = [slrVals[0]]
-# rpVals    = [rpVals[0]]
+slrVals   = [0, 50, 75, 100, 150, 200, 250, 300, 350, 450, 500, 550]
+rpVals    = [0, 1, 5, 10, 20, 50, 100]
+FTVals    = ['_connected', '_disconnected']
 
-# Define Color and Alpha parameters and CRS
+# Plotting Params 
 color1 = [49, 130, 189] # Dark Blue
 color2 = [158, 202, 225] # Lighter Blue
 alpha = 0.5 # transparency
 crs = 6339
 
-# Loop and load
-# ct = 1
-for jj in rpVals:
-    # Make group name
-    #groupName   = slr + '_' + rp    
-    if jj == 'King':
-        rp = 'RPKing'
-    else:
-        rp = f"RP{jj:04}" # convert to string of correct format for recurrence interval
-    
-    groupName   = rp
-    root = QgsProject.instance().layerTreeRoot()
-    currentGroup = root.addGroup(groupName)    
-    
-    for ii in slrVals:    
-        slr         = f"SLR{ii:03}"
+root = QgsProject.instance().layerTreeRoot() # Might be able to place it outside of loop 
+for ii in slrVals:
+    # Get root of groups in project 
+    slr         = f"SLR{ii:03}"
+    slr_group = root.addGroup(slr) # make a SLR parent group 
+    for jj in rpVals:
+        if jj == 'King':
+            rp = 'RPKing'
+        else:
+            rp = f"RP{jj:04}" # convert to string of correct format for recurrence interval
+        
+        groupName = slr + "_" + rp
+        currentGroup = root.addGroup(groupName)  
+        
         # Make file names for both flood types
         fileName1   = 'floodtype_' + slr + '_' + rp + FTVals[0] + '.shp'
         fileName2   = 'floodtype_' + slr + '_' + rp + FTVals[1] + '.shp'
@@ -96,24 +92,16 @@ for jj in rpVals:
         # Load data
         LoadVectorFromString(fileName1,crs,color1,alpha,currentGroup)
         LoadVectorFromString(fileName2,crs,color2,alpha,currentGroup)
-        # vlayer = iface.addVectorLayer(fileName1, "test", "ogr")
-
-
-# Now group based on SLR Scenarios - Needs work
-# root = QgsProject.instance().layerTreeRoot()
-# for ii in slrVals:
-#     slr          = f"SLR{ii:03}"
-#     newGroupName = slr
-#     ng1 = root.insertGroup(0, newGroupName)
-#     for jj in rpVals:
-#         if jj == 'King':
-#             rp = 'RPKing'
-#         else:
-#             rp = f"RP{jj:04}" # convert to string of correct format for recurrence interval        slr         = f"SLR{ii:03}"
-#
-#     ogGroup = slr + '_' + rp
-#     ng1.addGroup(ogGroup)
-#     root.addChildNode(ogGroup)
+        
+        # Find groups to add 
+        layer = root.findGroup(groupName) # Find shapefile data
+        slr_group = root.findGroup(slr) # Find SLR parent group 
+        
+        # Add to Parent Group 
+        clone = layer.clone()
+        parent = layer.parent()
+        slr_group.insertChildNode(0, clone) # Insert data into parent group 
+        parent.removeChildNode(layer) # Delete dup 
 
 if checkSpeed:
     elapsed = time.time() - t
